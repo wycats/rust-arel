@@ -2,6 +2,7 @@ use arel::nodes::{Node, ToNode, ToBorrowedNode, Projection};
 
 node!(SelectCore {
     source: Option<JoinSource>,
+    wheres: Vec<Box<Node>>,
     projections: Vec<Box<Projection>>
 })
 
@@ -9,8 +10,13 @@ impl SelectCore {
     pub fn build() -> SelectCore {
         SelectCore {
             source: Some(JoinSource::build()),
+            wheres: vec!(),
             projections: vec!()
         }
+    }
+
+    pub fn add_where(&mut self, node: Box<Node>) {
+        self.wheres.push(node)
     }
 
     pub fn source<'a>(&'a self) -> Option<&'a JoinSource> {
@@ -19,6 +25,10 @@ impl SelectCore {
 
     pub fn projections<'a>(&'a self) -> &'a [Box<Projection>] {
         self.projections.as_slice()
+    }
+
+    pub fn wheres<'a>(&'a self) -> &'a [Box<Node>] {
+        self.wheres.as_slice()
     }
 
     pub fn set_projections(&mut self, projections: Vec<Box<Projection>>) {

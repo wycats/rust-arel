@@ -55,8 +55,24 @@ impl Visitor for ToSqlVisitor {
         self.binary(and, "AND", collector);
     }
 
-    fn Or(&self, and: &nodes::Or, collector: &mut CollectSql) {
-        self.binary(and, "OR", collector);
+    fn Or(&self, or: &nodes::Or, collector: &mut CollectSql) {
+        self.binary(or, "OR", collector);
+    }
+
+    fn GreaterThan(&self, gt: &nodes::GreaterThan, collector: &mut CollectSql) {
+        self.binary(gt, ">", collector);
+    }
+
+    fn GreaterThanOrEqual(&self, gte: &nodes::GreaterThanOrEqual, collector: &mut CollectSql) {
+        self.binary(gte, ">=", collector);
+    }
+
+    fn LessThan(&self, lt: &nodes::LessThan, collector: &mut CollectSql) {
+        self.binary(lt, "<", collector);
+    }
+
+    fn LessThanOrEqual(&self, lte: &nodes::LessThanOrEqual, collector: &mut CollectSql) {
+        self.binary(lte, "<=", collector);
     }
 
     fn Matches(&self, matches: &nodes::Matches, collector: &mut CollectSql) {
@@ -75,6 +91,10 @@ impl Visitor for ToSqlVisitor {
         self.postfix(asc.operand, " DESC", collector);
     }
 
+    fn Offset(&self, offset: &nodes::Offset, collector: &mut CollectSql) {
+        self.prefix(offset.operand, "OFFSET ", collector);
+    }
+
     fn SelectStatement(&self, select: &nodes::SelectStatement, collector: &mut CollectSql) {
         for core in select.cores().iter() {
             core.visit(self, collector)
@@ -87,6 +107,7 @@ impl Visitor for ToSqlVisitor {
         }
 
         self.maybe_visit(&select.lock, collector);
+        self.maybe_visit(&select.offset, collector);
     }
 
     fn SelectCore(&self, select: &nodes::SelectCore, collector: &mut CollectSql) {
@@ -107,6 +128,11 @@ impl Visitor for ToSqlVisitor {
             collector.push(" FROM ");
             source.visit(self, collector);
         });
+
+        if !select.wheres().is_empty() {
+            collector.push(" WHERE ");
+            self.fold_join(select.wheres().as_slice(), collector, ", ");
+        }
     }
 
     fn JoinSource(&self, select: &nodes::JoinSource, collector: &mut CollectSql) {
@@ -137,6 +163,11 @@ impl ToSqlVisitor {
     fn postfix(&self, node: &Node, suffix: &str, collector: &mut CollectSql) {
         node.visit(self, collector);
         collector.push(suffix);
+    }
+
+    fn prefix(&self, node: &Node, prefix: &str, collector: &mut CollectSql) {
+        collector.push(prefix);
+        node.visit(self, collector);
     }
 
     fn table(&self, string: &str, collector: &mut CollectSql) {
@@ -355,6 +386,12 @@ mod tests {
             let limit = Limit { operand: Bind::from("omg").to_node() };
             expect_sql(limit, "LIMIT 'omg'");
         }
+
+        #[test]
+        fn supports_numbers() {
+            let limit = Limit { operand: 10u.to_node() };
+            expect_sql(limit, "LIMIT 10")
+        }
     }
 
     mod select {
@@ -424,6 +461,29 @@ mod tests {
 
             let select = table.project([star()]).order("foo").order("bar");
             expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo", "bar""#);
+        }
+
+        #[test]
+        fn offset() {
+            let table = dsl::Table::new("users");
+            let select = table.project([star()]).offset(10);
+            expect_sql(select.statement(), r#"SELECT * FROM "users" OFFSET 10"#);
+        }
+
+        #[test]
+        fn simple_where() {
+            use arel::Predications;
+            let table = dsl::Table::new("users");
+            let select = table.project([star()]).where(table["age"].gt(12u));
+            expect_sql(select.statement(), r#"SELECT * FROM "users" WHERE "users"."age" > 12"#);
+        }
+
+        #[test]
+        fn select_column_where() {
+            use arel::Predications;
+            let table = dsl::Table::new("users");
+            let select = table.project([table["id"]]).where(table["email"].eql("stuff"));
+            expect_sql(select.statement(), r#"SELECT "users"."id" FROM "users" WHERE "users"."email" = 'stuff'"#);
         }
     }
 }

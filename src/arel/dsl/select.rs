@@ -1,6 +1,6 @@
 use arel::dsl::Table;
 use arel::nodes;
-use arel::nodes::{TableName, ToNode, ToOrder, Projection};
+use arel::nodes::{TableName, ToNode, ToOrder, Projection, Literal};
 
 pub struct SelectBuilder {
     ast: nodes::SelectStatement
@@ -50,6 +50,16 @@ impl SelectBuilder {
 
     pub fn order<T: ToOrder>(mut self, order: T) -> SelectBuilder {
         self.ast.orders.push(order.to_order());
+        self
+    }
+
+    pub fn offset(mut self, offset: uint) -> SelectBuilder {
+        self.ast.offset = Some(nodes::Unary::build(Literal::new(offset.to_str())));
+        self
+    }
+
+    pub fn where<T: ToNode>(mut self, node: T) -> SelectBuilder {
+        self.context().add_where(node.to_node());
         self
     }
 }
