@@ -62,8 +62,13 @@ impl<'a> Node for &'a Node {
 }
 
 pub trait Orderable : Node + ToNode {}
+pub trait OrderBy : Node + ToNode {}
 pub trait InfixOperation : Node + ToNode + Orderable {}
 pub trait Projection : Node + ToNode {}
+
+pub trait ToOrder {
+    fn to_order(self) -> Box<Node>;
+}
 
 pub trait ToProjection {
     fn to_projection(self) -> Box<Projection>;
@@ -159,6 +164,8 @@ pub trait Ordering {
         }
     }
 }
+
+order_by!(Ascending, Descending)
 
 pub trait Unary {
     fn build<N: ToNode>(operand: N) -> Self;

@@ -1,5 +1,5 @@
 use arel::nodes;
-use arel::nodes::{Node, Literal, Binary};
+use arel::nodes::{Node, ToBorrowedNode, Literal, Binary};
 use arel::collector::CollectSql;
 use arel::visitor::Visitor;
 
@@ -79,6 +79,14 @@ impl Visitor for ToSqlVisitor {
         for core in select.cores().iter() {
             core.visit(self, collector)
         }
+
+        if !select.orders.is_empty() {
+            collector.push(" ORDER BY ");
+
+            self.fold_join(select.orders.as_slice(), collector, ", ");
+        }
+
+        self.maybe_visit(&select.lock, collector);
     }
 
     fn SelectCore(&self, select: &nodes::SelectCore, collector: &mut CollectSql) {
@@ -111,6 +119,13 @@ impl Visitor for ToSqlVisitor {
 }
 
 impl ToSqlVisitor {
+    fn maybe_visit<T: Node>(&self, node: &Option<T>, collector: &mut CollectSql) {
+        node.as_ref().map(|node| {
+            collector.push(" ");
+            node.visit(self, collector);
+        });
+    }
+
     fn binary(&self, binary: &Binary, join: &str, collector: &mut CollectSql) {
         binary.left().visit(self, collector);
         collector.push(" ");
@@ -134,11 +149,11 @@ impl ToSqlVisitor {
         collector.push("\"");
     }
 
-    fn fold_join(&self, list: &[Box<Node>], collector: &mut CollectSql, join: &str) {
+    fn fold_join<T: ToBorrowedNode>(&self, list: &[T], collector: &mut CollectSql, join: &str) {
         let last = list.len() - 1;
 
         for (i, node) in list.iter().enumerate() {
-            node.visit(self, collector);
+            node.to_borrowed_node().visit(self, collector);
             if i != last {
                 collector.push(join);
             }
@@ -345,6 +360,7 @@ mod tests {
     mod select {
         use super::*;
         use arel::dsl;
+        use arel::nodes::UnqualifiedColumn;
 
         #[test]
         fn simple_select() {
@@ -368,6 +384,46 @@ mod tests {
             let select = table.project([star()]).exists().as_("foo");
 
             expect_sql(select, "EXISTS (SELECT * FROM \"users\") AS \"foo\"");
+        }
+
+        #[test]
+        fn select_lock_update() {
+            let table = dsl::Table::new("users");
+            let select = table.project([star()]).lock();
+
+            expect_sql(select.statement(), "SELECT * FROM \"users\" FOR UPDATE");
+        }
+
+        #[test]
+        fn order_by() {
+            let select = dsl::Table::new("users").project([star()]).order("foo");
+            expect_sql(select.statement(), "SELECT * FROM \"users\" ORDER BY \"foo\"");
+        }
+
+        #[test]
+        fn order_by_asc_desc() {
+            use arel::OrderPredications;
+            let table = dsl::Table::new("users");
+
+            let select = table.project([star()]).order(UnqualifiedColumn::new("foo").asc());
+            expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo" ASC"#);
+
+            let select = table.project([star()]).order(table["foo"].asc());
+            expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "users"."foo" ASC"#);
+
+            let select = table.project([star()]).order(UnqualifiedColumn::new("foo").desc());
+            expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo" DESC"#);
+
+            let select = table.project([star()]).order(table["foo"].desc());
+            expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "users"."foo" DESC"#);
+        }
+
+        #[test]
+        fn order_by_multiple() {
+            let table = dsl::Table::new("users");
+
+            let select = table.project([star()]).order("foo").order("bar");
+            expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo", "bar""#);
         }
     }
 }

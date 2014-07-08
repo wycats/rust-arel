@@ -34,6 +34,22 @@ macro_rules! node_is(
 macro_rules! orderable(
     ($($name:ident),+) => (
         $(node_is!($name : Orderable))+
+        $(order_by!($name))+
+    )
+)
+
+#[macro_escape]
+macro_rules! order_by(
+    ($($name:ident),+) => (
+        $(node_is!($name : OrderBy))+
+
+        $(
+            impl ::arel::nodes::ToOrder for $name {
+                fn to_order(self) -> Box<::arel::nodes::Node> {
+                    box self as Box<::arel::nodes::Node>
+                }
+            }
+        )+
     )
 )
 
@@ -65,6 +81,12 @@ macro_rules! node_impl(
         impl ::arel::nodes::Node for $name {
             fn visit(&self, visitor: &::arel::visitor::Visitor, collector: &mut ::arel::collector::CollectSql) {
                 visitor.$name(self, collector)
+            }
+        }
+
+        impl ::arel::nodes::ToNode for Box<$name> {
+            fn to_node(self) -> Box<::arel::nodes::Node> {
+                self as Box<::arel::nodes::Node>
             }
         }
 
