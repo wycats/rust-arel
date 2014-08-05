@@ -1,7 +1,7 @@
 use arel::dsl::Table;
 use arel::nodes;
 use arel::nodes::{TableName, ToNode, ToOrder, ToProjections, Literal, InnerJoin, Relation};
-use arel::nodes::{Join};
+use arel::nodes::{Join, Subselect, Node};
 
 pub struct SelectBuilder {
     ast: nodes::SelectStatement
@@ -17,6 +17,15 @@ impl SelectBuilder {
         builder
     }
 
+    pub fn from_node<N: ToNode>(node: N) -> SelectBuilder {
+        let mut builder = SelectBuilder {
+            ast: nodes::SelectStatement::build()
+        };
+
+        builder.context().set_left(node);
+        builder
+    }
+
     pub fn statement(&self) -> &nodes::SelectStatement {
         &self.ast
     }
@@ -28,6 +37,19 @@ impl SelectBuilder {
     pub fn from<S: Str>(&mut self, table: S) -> &mut SelectBuilder {
         self.context().set_left(TableName { name: table.as_slice().to_string() });
         self
+    }
+
+    pub fn alias<S: Str>(self, alias: S) -> Subselect {
+        Subselect::build(self.ast).alias(alias)
+    }
+
+    pub fn select(self) -> SelectBuilder {
+        let mut builder = SelectBuilder {
+            ast: nodes::SelectStatement::build()
+        };
+
+        builder.context().set_left(self.ast);
+        builder
     }
 
     pub fn exists(self) -> nodes::Function {

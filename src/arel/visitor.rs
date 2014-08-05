@@ -26,5 +26,5 @@ visitor!(True, False, Function, In, Equality, Delete, Except,
          Descending, Ascending, DistinctOn, Lock, Top, On, Offset,
          Not, Limit, Having, Group, Bin, BindParam, Literal, Bind,
          And, Null, UnqualifiedColumn, QualifiedColumn,
-         Multiplication, Division, Addition, Subtraction,
+         Multiplication, Division, Addition, Subtraction, Subselect,
          SelectStatement, SelectCore, JoinSource, TableName, TableAlias)

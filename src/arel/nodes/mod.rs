@@ -175,6 +175,7 @@ impl ColumnAt for TableAlias {
         }
     }
 }
+
 pub mod sql_literal;
 pub mod select_statement;
 pub mod select_core;
@@ -212,6 +213,22 @@ pub trait Unary {
 
 unary!(Bin, Group, Having, Limit, Not, Offset, On, Top, Lock, DistinctOn,
        Ascending, Descending)
+
+node!(Subselect {
+    pub select: SelectStatement,
+    pub alias: Option<UnqualifiedColumn>
+})
+
+impl Subselect {
+    pub fn build(operand: SelectStatement) -> Subselect {
+        Subselect { select: operand, alias: None }
+    }
+
+    pub fn alias<S: Str>(mut self, alias: S) -> Subselect {
+        self.alias = Some(UnqualifiedColumn::new(alias));
+        self
+    }
+}
 
 node!(Extract {
     pub operand: Box<Node>,

@@ -95,6 +95,14 @@ impl Visitor for ToSqlVisitor {
         self.prefix(offset.operand, "OFFSET ", collector);
     }
 
+    fn Subselect(&self, subselect: &nodes::Subselect, collector: &mut CollectSql) {
+        collector.push("(");
+        subselect.select.visit(self, collector);
+        collector.push(")");
+
+        self.maybe_visit(&subselect.alias, collector);
+    }
+
     fn SelectStatement(&self, select: &nodes::SelectStatement, collector: &mut CollectSql) {
         for core in select.cores().iter() {
             core.visit(self, collector)
@@ -429,7 +437,7 @@ mod tests {
     mod select {
         use super::*;
         use arel::dsl;
-        use arel::dsl::Table;
+        use arel::dsl::{Table, Select};
         use arel::nodes::{UnqualifiedColumn, ColumnAt};
 
         #[test]
@@ -578,6 +586,20 @@ mod tests {
 
             expect_sql(select.statement(),
                 r#"SELECT FROM "users" RIGHT OUTER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
+        }
+
+        #[test]
+        fn subselect() {
+            let inner = Table::new("zomg")
+                .select()
+                .project([star()])
+                .alias("foo");
+
+            let select = Select::from_node(inner)
+                .project([UnqualifiedColumn::new("name")]);
+
+            expect_sql(select.statement(),
+                r#"SELECT "name" FROM (SELECT * FROM "zomg") "foo""#);
         }
     }
 }
