@@ -33,12 +33,12 @@ impl CollectSql for SqlCollector {
         use arel::nodes::sql_literal;
 
         let bind = match bind.value {
-            sql_literal::UintKind(u) => u.to_str(),
-            sql_literal::IntKind(i) => i.to_str(),
-            sql_literal::F32Kind(f) => f.to_str(),
-            sql_literal::F64Kind(f) => f.to_str(),
-            sql_literal::BoolKind(true) => "'t'".to_str(),
-            sql_literal::BoolKind(false) => "'f'".to_str(),
+            sql_literal::UintKind(u) => u.to_string(),
+            sql_literal::IntKind(i) => i.to_string(),
+            sql_literal::F32Kind(f) => f.to_string(),
+            sql_literal::F64Kind(f) => f.to_string(),
+            sql_literal::BoolKind(true) => "'t'".to_string(),
+            sql_literal::BoolKind(false) => "'f'".to_string(),
             sql_literal::StringKind(ref s) => format!("'{}'", s),
         };
 

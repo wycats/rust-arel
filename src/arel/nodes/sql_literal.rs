@@ -6,7 +6,7 @@ node!(Literal {
 
 impl Literal {
     pub fn new<S: Str>(string: S) -> Literal {
-        Literal { value: string.as_slice().to_str() }
+        Literal { value: string.as_slice().to_string() }
     }
 }
 
@@ -33,14 +33,14 @@ pub trait ToBind {
 }
 
 macro_rules! bind(
-    ($name:ty => $kind:ident($expr:expr)) => (
-        impl<'a> ToBind for $name {
+    ($name:ty => $kind:ident) => (
+        impl ToBind for $name {
             fn to_bind(self) -> Bind {
-                Bind { value: $kind($expr) }
+                Bind { value: $kind(self) }
             }
         }
 
-        impl<'a> ToNode for $name {
+        impl ToNode for $name {
             fn to_node(self) -> Box<Node> {
                 box self.to_bind() as Box<Node>
             }
@@ -48,13 +48,24 @@ macro_rules! bind(
     )
 )
 
-bind!(uint => UintKind(self))
-bind!(int => IntKind(self))
-bind!(f32 => F32Kind(self))
-bind!(f64 => F64Kind(self))
-bind!(bool => BoolKind(self))
-bind!(String => StringKind(self))
-bind!(&'a str => StringKind(self.to_str()))
+bind!(uint => UintKind)
+bind!(int => IntKind)
+bind!(f32 => F32Kind)
+bind!(f64 => F64Kind)
+bind!(bool => BoolKind)
+bind!(String => StringKind)
+
+impl<'a> ToBind for &'a str {
+    fn to_bind(self) -> Bind {
+        Bind { value: StringKind(self.to_string()) }
+    }
+}
+
+impl<'a> ToNode for &'a str {
+    fn to_node(self) -> Box<Node> {
+        box self.to_bind() as Box<Node>
+    }
+}
 
 impl Bind {
     pub fn from<T: ToBind>(val: T) -> Bind {

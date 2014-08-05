@@ -1,4 +1,4 @@
-use arel::nodes::{Node, ToNode, ToBorrowedNode, Projection};
+use arel::nodes::{Node, ToNode, ToBorrowedNode, Projection, Join, Unary};
 
 node!(SelectCore {
     source: Option<JoinSource>,
@@ -35,16 +35,23 @@ impl SelectCore {
         self.projections = projections;
     }
 
-    pub fn set_left<N: ToNode>(&mut self, node: N) {
+    pub fn add_join(&mut self, node: Join) {
         match self.source {
-            Some(ref mut source) => source.left = Some(node.to_node()),
+            Some(ref mut source) => source.right.push(node),
             None => ()
         }
     }
 
-    pub fn set_right<N: ToNode>(&mut self, node: N) {
+    pub fn on<T: ToNode>(&mut self, node: T) {
         match self.source {
-            Some(ref mut source) => source.right = Some(node.to_node()),
+            Some(ref mut source) => source.on(node),
+            None => ()
+        }
+    }
+
+    pub fn set_left<N: ToNode>(&mut self, node: N) {
+        match self.source {
+            Some(ref mut source) => source.left = Some(node.to_node()),
             None => ()
         }
     }
@@ -52,7 +59,7 @@ impl SelectCore {
 
 node!(JoinSource {
     left: Option<Box<Node>>,
-    right: Option<Box<Node>>
+    right: Vec<Join>
 })
 
 impl JoinSource {
@@ -61,7 +68,19 @@ impl JoinSource {
             node.to_borrowed_node()
         })
     }
+
+    pub fn right<'a>(&'a self) -> &'a [Join] {
+        self.right.as_slice()
+    }
+
+    pub fn on<T: ToNode>(&mut self, on: T) {
+        match self.right.mut_last() {
+            Some(join) => join.on = Some(Unary::build(on.to_node())),
+            None => ()
+        }
+    }
+
     pub fn build() -> JoinSource {
-        JoinSource { left: None, right: None }
+        JoinSource { left: None, right: vec!() }
     }
 }

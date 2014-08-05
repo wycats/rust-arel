@@ -39,6 +39,13 @@ macro_rules! orderable(
 )
 
 #[macro_escape]
+macro_rules! relation(
+    ($($name:ident),+) => (
+        $(node_is!($name : Relation))+
+    )
+)
+
+#[macro_escape]
 macro_rules! order_by(
     ($($name:ident),+) => (
         $(node_is!($name : OrderBy))+
@@ -132,6 +139,38 @@ macro_rules! unary(
             fn operand<'a>(&'a self) -> &'a Node {
                 let operand: &Node = self.operand;
                 operand
+            }
+        }
+    )
+)
+
+macro_rules! binary(
+    ($name:ident, $($rest:ident),+) => (
+        binary!($name)
+        binary!($($rest),+)
+    );
+    ($name:ident) => (
+        node!($name {
+            pub left: Box<::arel::nodes::Node>,
+            pub right: Box<::arel::nodes::Node>
+        })
+
+        impl Binary for $name {
+            fn build<N1: ::arel::nodes::ToNode, N2: ::arel::nodes::ToNode>(left: N1, right: N2) -> $name {
+                $name {
+                    left: left.to_node(),
+                    right: right.to_node()
+                }
+            }
+
+            fn left<'a>(&'a self) -> &'a ::arel::nodes::Node {
+                let left: &::arel::nodes::Node = self.left;
+                left
+            }
+
+            fn right<'a>(&'a self) -> &'a ::arel::nodes::Node {
+                let right: &::arel::nodes::Node = self.right;
+                right
             }
         }
     )

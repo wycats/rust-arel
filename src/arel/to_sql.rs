@@ -135,12 +135,41 @@ impl Visitor for ToSqlVisitor {
         }
     }
 
-    fn JoinSource(&self, select: &nodes::JoinSource, collector: &mut CollectSql) {
-        select.left().map(|node| node.visit(self, collector));
+    fn JoinSource(&self, source: &nodes::JoinSource, collector: &mut CollectSql) {
+        source.left().map(|node| node.visit(self, collector));
+
+        if !source.right().is_empty() {
+            collector.push(" ");
+            self.fold_join(source.right(), collector, " ");
+        }
+    }
+
+    fn Join(&self, source: &nodes::Join, collector: &mut CollectSql) {
+        let name = match source.kind {
+            nodes::InnerJoin => "INNER JOIN ",
+            nodes::OuterJoin => "OUTER JOIN ",
+            nodes::FullOuterJoin => "FULL OUTER JOIN "
+        };
+
+        collector.push(name);
+        println!("HI");
+        source.relation.visit(self, collector);
+        self.maybe_visit(&source.on, collector);
     }
 
     fn TableName(&self, table: &nodes::TableName, collector: &mut CollectSql) {
-        self.table(table.name.as_slice(), collector)
+        self.table(table.name.as_slice(), collector);
+    }
+
+    fn TableAlias(&self, alias: &nodes::TableAlias, collector: &mut CollectSql) {
+        self.table(alias.get_table_name(), collector);
+        collector.push(" ");
+        self.table(alias.name.as_slice(), collector);
+    }
+
+    fn On(&self, alias: &nodes::On, collector: &mut CollectSql) {
+        collector.push("ON ");
+        alias.operand.visit(self, collector);
     }
 }
 
@@ -210,7 +239,7 @@ mod tests {
     fn to_sql<N: Node>(node: N) -> String {
         let mut collector = SqlCollector::new();
         node.visit(&ToSqlVisitor, &mut collector);
-        collector.value().to_str()
+        collector.value().to_string()
     }
 
     pub fn expect_sql<N: ToBorrowedNode>(node: N, value: &str) {
@@ -296,11 +325,12 @@ mod tests {
         use super::*;
         use arel::Predications;
         use arel::dsl;
+        use arel::nodes::ColumnAt;
 
         #[test]
         fn test_matches() {
             let table = dsl::Table::new("users");
-            let matches = table["name"].matches("foo%");
+            let matches = table.at("name").matches("foo%");
 
             expect_sql(matches, r#""users"."name" LIKE 'foo%'"#);
         }
@@ -308,7 +338,7 @@ mod tests {
         #[test]
         fn test_not_matches() {
             let table = dsl::Table::new("users");
-            let matches = table["name"].does_not_match("foo%");
+            let matches = table.at("name").does_not_match("foo%");
 
             expect_sql(matches, r#""users"."name" NOT LIKE 'foo%'"#);
         }
@@ -318,11 +348,12 @@ mod tests {
         use super::*;
         use arel::OrderPredications;
         use arel::dsl;
+        use arel::nodes::ColumnAt;
 
         #[test]
         fn test_column_asc() {
             let table = dsl::Table::new("users");
-            let asc = table["name"].asc();
+            let asc = table.at("name").asc();
 
             expect_sql(asc, r#""users"."name" ASC"#);
         }
@@ -330,7 +361,7 @@ mod tests {
         #[test]
         fn test_column_desc() {
             let table = dsl::Table::new("users");
-            let asc = table["name"].desc();
+            let asc = table.at("name").desc();
 
             expect_sql(asc, r#""users"."name" DESC"#);
         }
@@ -340,7 +371,7 @@ mod tests {
         use super::*;
         use arel::Conjunctions;
         use arel::dsl;
-        use arel::nodes::{UnqualifiedColumn, Assignment};
+        use arel::nodes::{UnqualifiedColumn, Assignment, ColumnAt};
 
         #[test]
         fn test_and() {
@@ -368,8 +399,8 @@ mod tests {
         fn test_qualified_column_assignment() {
             let table = dsl::Table::new("users");
             let assign = Assignment {
-                left: box table["id"],
-                right: box table["name"]
+                left: box table.at("id"),
+                right: box table.at("name")
             };
 
             expect_sql(assign, r#""users"."id" = "users"."name""#);
@@ -397,7 +428,8 @@ mod tests {
     mod select {
         use super::*;
         use arel::dsl;
-        use arel::nodes::UnqualifiedColumn;
+        use arel::dsl::Table;
+        use arel::nodes::{UnqualifiedColumn, ColumnAt};
 
         #[test]
         fn simple_select() {
@@ -445,13 +477,13 @@ mod tests {
             let select = table.project([star()]).order(UnqualifiedColumn::new("foo").asc());
             expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo" ASC"#);
 
-            let select = table.project([star()]).order(table["foo"].asc());
+            let select = table.project([star()]).order(table.at("foo").asc());
             expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "users"."foo" ASC"#);
 
             let select = table.project([star()]).order(UnqualifiedColumn::new("foo").desc());
             expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "foo" DESC"#);
 
-            let select = table.project([star()]).order(table["foo"].desc());
+            let select = table.project([star()]).order(table.at("foo").desc());
             expect_sql(select.statement(), r#"SELECT * FROM "users" ORDER BY "users"."foo" DESC"#);
         }
 
@@ -474,7 +506,7 @@ mod tests {
         fn simple_where() {
             use arel::Predications;
             let table = dsl::Table::new("users");
-            let select = table.project([star()]).where(table["age"].gt(12u));
+            let select = table.project([star()]).where(table.at("age").gt(12u));
             expect_sql(select.statement(), r#"SELECT * FROM "users" WHERE "users"."age" > 12"#);
         }
 
@@ -482,8 +514,23 @@ mod tests {
         fn select_column_where() {
             use arel::Predications;
             let table = dsl::Table::new("users");
-            let select = table.project([table["id"]]).where(table["email"].eql("stuff"));
+            let select = table.project([table.at("id")]).where(table.at("email").eql("stuff"));
             expect_sql(select.statement(), r#"SELECT "users"."id" FROM "users" WHERE "users"."email" = 'stuff'"#);
+        }
+
+        #[test]
+        fn simple_join() {
+            use arel::Predications;
+            let left = Table::new("users");
+            let right = left.alias();
+            let predicate = left.at("id").eql(right.at("id"));
+
+            let select = left.select()
+                             .join(right)
+                             .on(predicate);
+
+            expect_sql(select.statement(),
+                r#"SELECT FROM "users" INNER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
         }
     }
 }

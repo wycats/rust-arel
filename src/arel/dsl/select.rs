@@ -1,6 +1,7 @@
 use arel::dsl::Table;
 use arel::nodes;
-use arel::nodes::{TableName, ToNode, ToOrder, Projection, Literal};
+use arel::nodes::{TableName, ToNode, ToOrder, Projection, Literal, InnerJoin, Relation};
+use arel::nodes::{Join};
 
 pub struct SelectBuilder {
     ast: nodes::SelectStatement
@@ -30,7 +31,7 @@ impl SelectBuilder {
     }
 
     pub fn from<'a, S: Str>(&'a mut self, table: S) -> &'a mut SelectBuilder {
-        self.context().set_left(TableName { name: table.as_slice().to_str() });
+        self.context().set_left(TableName { name: table.as_slice().to_string() });
         self
     }
 
@@ -54,12 +55,22 @@ impl SelectBuilder {
     }
 
     pub fn offset(mut self, offset: uint) -> SelectBuilder {
-        self.ast.offset = Some(nodes::Unary::build(Literal::new(offset.to_str())));
+        self.ast.offset = Some(nodes::Unary::build(Literal::new(offset.to_string())));
         self
     }
 
     pub fn where<T: ToNode>(mut self, node: T) -> SelectBuilder {
         self.context().add_where(node.to_node());
+        self
+    }
+
+    pub fn join<T: Relation>(mut self, relation: T) -> SelectBuilder {
+        self.context().add_join(Join::build(nodes::InnerJoin, relation));
+        self
+    }
+
+    pub fn on<T: ToNode>(mut self, on: T) -> SelectBuilder {
+        self.context().on(on);
         self
     }
 }

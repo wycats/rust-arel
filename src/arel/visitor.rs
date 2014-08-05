@@ -19,12 +19,12 @@ macro_rules! visitor(
     )
 )
 
-visitor!(True, False, Function, In, FullOuterJoin, OuterJoin, InnerJoin,
-         Equality, Delete, Except, Intersect, UnionAll, Or, NotIn,
-         NotEqual, Matches, LessThanOrEqual, Union, LessThan, Join,
-         GreaterThanOrEqual, GreaterThan, DoesNotMatch, Between,
-         Assignment, As, Extract, Descending, Ascending, DistinctOn,
-         Lock, Top, On, Offset, Not, Limit, Having, Group, Bin, BindParam,
-         Literal, Bind, And, Null, UnqualifiedColumn, QualifiedColumn,
-         Multiplication, Division, Addition, Subtraction, SelectStatement,
-         SelectCore, JoinSource, TableName)
+visitor!(True, False, Function, In, Equality, Delete, Except,
+         Intersect, UnionAll, Or, NotIn, NotEqual, Matches,
+         LessThanOrEqual, Union, LessThan, Join, GreaterThanOrEqual,
+         GreaterThan, DoesNotMatch, Between, Assignment, As, Extract,
+         Descending, Ascending, DistinctOn, Lock, Top, On, Offset,
+         Not, Limit, Having, Group, Bin, BindParam, Literal, Bind,
+         And, Null, UnqualifiedColumn, QualifiedColumn,
+         Multiplication, Division, Addition, Subtraction,
+         SelectStatement, SelectCore, JoinSource, TableName, TableAlias)

@@ -65,6 +65,7 @@ pub trait Orderable : Node + ToNode {}
 pub trait OrderBy : Node + ToNode {}
 pub trait InfixOperation : Node + ToNode + Orderable {}
 pub trait Projection : Node + ToNode {}
+pub trait Relation : Node + ToNode {}
 
 pub trait ToOrder {
     fn to_order(self) -> Box<Node>;
@@ -129,7 +130,7 @@ projection!(UnqualifiedColumn)
 
 impl UnqualifiedColumn {
     pub fn new<S: Str>(string: S) -> UnqualifiedColumn {
-        UnqualifiedColumn { name: string.as_slice().to_str() }
+        UnqualifiedColumn { name: string.as_slice().to_string() }
     }
 }
 
@@ -137,6 +138,43 @@ node!(TableName {
     pub name: String
 })
 
+relation!(TableName)
+
+impl TableName {
+    pub fn build(name: &str) -> TableName {
+        TableName { name: name.to_string() }
+    }
+}
+
+node!(TableAlias {
+    pub name: String,
+    pub relation: TableName
+})
+
+relation!(TableAlias)
+
+impl TableAlias {
+    pub fn build(relation: TableName, alias_name: &str) -> TableAlias {
+        TableAlias { name: alias_name.to_string(), relation: relation }
+    }
+
+    pub fn get_table_name<'a>(&'a self) -> &'a str {
+        self.relation.name.as_slice()
+    }
+}
+
+pub trait ColumnAt {
+    fn at<S: Str>(&self, col: S) -> QualifiedColumn;
+}
+
+impl ColumnAt for TableAlias {
+    fn at<S: Str>(&self, col: S) -> QualifiedColumn {
+        QualifiedColumn {
+            relation: self.name.clone(),
+            name: col.as_slice().to_string()
+        }
+    }
+}
 pub mod sql_literal;
 pub mod select_statement;
 pub mod select_core;
@@ -203,42 +241,10 @@ pub trait Binary {
     fn right<'a>(&'a self) -> &'a Node;
 }
 
-macro_rules! binary(
-    ($name:ident, $($rest:ident),+) => (
-        binary!($name)
-        binary!($($rest),+)
-    );
-    ($name:ident) => (
-        node!($name {
-            pub left: Box<Node>,
-            pub right: Box<Node>
-        })
-
-        impl Binary for $name {
-            fn build<N1: ToNode, N2: ToNode>(left: N1, right: N2) -> $name {
-                $name {
-                    left: left.to_node(),
-                    right: right.to_node()
-                }
-            }
-
-            fn left<'a>(&'a self) -> &'a Node {
-                let left: &Node = self.left;
-                left
-            }
-
-            fn right<'a>(&'a self) -> &'a Node {
-                let right: &Node = self.right;
-                right
-            }
-        }
-    )
-)
-
 binary!(As, Assignment, Between, DoesNotMatch, GreaterThan, GreaterThanOrEqual,
-        Join, LessThan, LessThanOrEqual, Matches, NotEqual, NotIn, Or, Union,
-        UnionAll, Intersect, Except, Delete, Equality, OuterJoin, InnerJoin,
-        FullOuterJoin, In, And, Multiplication, Division, Addition, Subtraction)
+        LessThan, LessThanOrEqual, Matches, NotEqual, NotIn, Or, Union,
+        UnionAll, Intersect, Except, Delete, Equality, In, And,
+        Multiplication, Division, Addition, Subtraction)
 
 orderable!(Multiplication, Division, Addition, Subtraction)
 infix!(Multiplication, Division, Addition, Subtraction)
@@ -246,6 +252,24 @@ infix!(Multiplication, Division, Addition, Subtraction)
 node!(BindParam {
     pub bind: String
 })
+
+pub enum JoinKind {
+    InnerJoin,
+    OuterJoin,
+    FullOuterJoin
+}
+
+node!(Join {
+    pub kind: JoinKind,
+    pub relation: Box<Node>,
+    pub on: Option<On>
+})
+
+impl Join {
+    pub fn build<T: ToNode>(kind: JoinKind, relation: T) -> Join {
+        Join { kind: kind, relation: relation.to_node(), on: None }
+    }
+}
 
 pub enum FunctionKind {
     Sum,
@@ -267,7 +291,7 @@ node!(Function {
 impl Function {
     pub fn named(name: &str, exprs: Vec<Box<Node>>) -> Function {
         Function {
-            kind: Named(name.to_str()),
+            kind: Named(name.to_string()),
             expressions: exprs,
             alias: None,
             distinct: false
