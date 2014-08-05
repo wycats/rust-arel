@@ -1,11 +1,11 @@
 use arel::nodes::sql_literal::Bind;
 
 pub trait Collect {
-    fn push<'a>(&'a mut self, string: &str);
+    fn push(&mut self, string: &str);
 }
 
 pub trait CollectSql : Collect {
-    fn add_bind<'a>(&'a mut self, bind: &Bind);
+    fn add_bind(&mut self, bind: &Bind);
 }
 
 pub struct SqlCollector {
@@ -17,19 +17,19 @@ impl SqlCollector {
         SqlCollector { string: String::with_capacity(1024) }
     }
 
-    pub fn value<'a>(&'a self) -> &'a str {
+    pub fn value(&self) -> &str {
         self.string.as_slice()
     }
 }
 
 impl Collect for SqlCollector {
-    fn push<'a>(&'a mut self, string: &str) {
+    fn push(&mut self, string: &str) {
         self.string.push_str(string);
     }
 }
 
 impl CollectSql for SqlCollector {
-    fn add_bind<'a>(&'a mut self, bind: &Bind) {
+    fn add_bind(&mut self, bind: &Bind) {
         use arel::nodes::sql_literal;
 
         let bind = match bind.value {

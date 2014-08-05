@@ -22,11 +22,11 @@ impl SelectStatement {
         }
     }
 
-    pub fn context<'a>(&'a mut self) -> &'a mut nodes::SelectCore {
+    pub fn context(&mut self) -> &mut nodes::SelectCore {
         &mut self.context
     }
 
-    pub fn cores<'a>(&'a self) -> Vec<&'a nodes::SelectCore> {
+    pub fn cores(&self) -> Vec<&nodes::SelectCore> {
         self.cores.iter().collect::<Vec<& nodes::SelectCore>>().append_one(&self.context)
     }
 }

@@ -10,11 +10,11 @@ impl Table {
         Table { name: string.as_slice().to_string() }
     }
 
-    pub fn get_name<'a>(&'a self) -> &'a str {
+    pub fn get_name(&self) -> &str {
         self.name.as_slice()
     }
 
-    pub fn project<'a, P: ToProjections>(&self, projections: P) -> SelectBuilder {
+    pub fn project<P: ToProjections>(&self, projections: P) -> SelectBuilder {
         let select = from(self);
         select.project(projections.to_projections())
     }

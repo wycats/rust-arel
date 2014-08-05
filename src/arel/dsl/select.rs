@@ -17,15 +17,15 @@ impl SelectBuilder {
         builder
     }
 
-    pub fn statement<'a>(&'a self) -> &'a nodes::SelectStatement {
+    pub fn statement(&self) -> &nodes::SelectStatement {
         &self.ast
     }
 
-    pub fn context<'a>(&'a mut self) -> &'a mut nodes::SelectCore {
+    pub fn context(&mut self) -> &mut nodes::SelectCore {
         self.ast.context()
     }
 
-    pub fn from<'a, S: Str>(&'a mut self, table: S) -> &'a mut SelectBuilder {
+    pub fn from<S: Str>(&mut self, table: S) -> &mut SelectBuilder {
         self.context().set_left(TableName { name: table.as_slice().to_string() });
         self
     }

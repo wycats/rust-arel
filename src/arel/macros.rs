@@ -104,13 +104,13 @@ macro_rules! node_impl(
         }
 
         impl ::arel::nodes::ToBorrowedNode for $name {
-            fn to_borrowed_node<'a>(&'a self) -> &'a ::arel::nodes::Node {
+            fn to_borrowed_node(&self) -> &::arel::nodes::Node {
                 self as &::arel::nodes::Node
             }
         }
 
         impl<'a> ::arel::nodes::ToBorrowedNode for &'a $name {
-            fn to_borrowed_node<'a>(&'a self) -> &'a ::arel::nodes::Node {
+            fn to_borrowed_node(&self) -> &::arel::nodes::Node {
                 *self as &::arel::nodes::Node
             }
         }
@@ -136,7 +136,7 @@ macro_rules! unary(
                 $name { operand: operand.to_node() }
             }
 
-            fn operand<'a>(&'a self) -> &'a Node {
+            fn operand(&self) -> &Node {
                 let operand: &Node = self.operand;
                 operand
             }
@@ -163,12 +163,12 @@ macro_rules! binary(
                 }
             }
 
-            fn left<'a>(&'a self) -> &'a ::arel::nodes::Node {
+            fn left(&self) -> &::arel::nodes::Node {
                 let left: &::arel::nodes::Node = self.left;
                 left
             }
 
-            fn right<'a>(&'a self) -> &'a ::arel::nodes::Node {
+            fn right(&self) -> &::arel::nodes::Node {
                 let right: &::arel::nodes::Node = self.right;
                 right
             }

@@ -19,15 +19,15 @@ impl SelectCore {
         self.wheres.push(node)
     }
 
-    pub fn source<'a>(&'a self) -> Option<&'a JoinSource> {
+    pub fn source(&self) -> Option<&JoinSource> {
         self.source.as_ref()
     }
 
-    pub fn projections<'a>(&'a self) -> &'a [Box<Projection>] {
+    pub fn projections(&self) -> &[Box<Projection>] {
         self.projections.as_slice()
     }
 
-    pub fn wheres<'a>(&'a self) -> &'a [Box<Node>] {
+    pub fn wheres(&self) -> &[Box<Node>] {
         self.wheres.as_slice()
     }
 
@@ -63,13 +63,13 @@ node!(JoinSource {
 })
 
 impl JoinSource {
-    pub fn left<'a>(&'a self) -> Option<&'a Node> {
+    pub fn left(&self) -> Option<&Node> {
         self.left.as_ref().map(|node| {
             node.to_borrowed_node()
         })
     }
 
-    pub fn right<'a>(&'a self) -> &'a [Join] {
+    pub fn right(&self) -> &[Join] {
         self.right.as_slice()
     }
 

@@ -12,14 +12,14 @@ impl ToNode for Box<Node> {
 }
 
 impl ToBorrowedNode for Box<Node> {
-    fn to_borrowed_node<'a>(&'a self) -> &'a Node {
+    fn to_borrowed_node(&self) -> &Node {
         let node: &Node = *self;
         node
     }
 }
 
 impl<'a> ToBorrowedNode for &'a Node {
-    fn to_borrowed_node<'a>(&'a self) -> &'a Node {
+    fn to_borrowed_node(&self) -> &Node {
         *self
     }
 }
@@ -29,13 +29,13 @@ pub trait ToNode {
 }
 
 pub trait ToBorrowedNode {
-    fn to_borrowed_node<'a>(&'a self) -> &'a Node;
+    fn to_borrowed_node(&self) -> &Node;
 }
 
 pub trait Node {
     fn visit(&self, visitor: &Visitor, collector: &mut CollectSql);
 
-    fn borrow<'a>(&'a self) -> &'a Node {
+    fn borrow(&self) -> &Node {
         self as &Node
     }
 }
@@ -45,7 +45,7 @@ impl Node for Box<Node> {
         self.visit(visitor, collector)
     }
 
-    fn borrow<'a>(&'a self) -> &'a Node {
+    fn borrow(&self) -> &Node {
         let node: &Node = self;
         node
     }
@@ -56,7 +56,7 @@ impl<'a> Node for &'a Node {
         self.visit(visitor, collector)
     }
 
-    fn borrow<'a>(&'a self) -> &'a Node {
+    fn borrow(&self) -> &Node {
         *self
     }
 }
@@ -207,7 +207,7 @@ order_by!(Ascending, Descending)
 
 pub trait Unary {
     fn build<N: ToNode>(operand: N) -> Self;
-    fn operand<'a>(&'a self) -> &'a Node;
+    fn operand(&self) -> &Node;
 }
 
 unary!(Bin, Group, Having, Limit, Not, Offset, On, Top, Lock, DistinctOn,
@@ -237,8 +237,8 @@ impl Ordering for Ascending {
 
 pub trait Binary {
     fn build<N1: ToNode, N2: ToNode>(left: N1, right: N2) -> Self;
-    fn left<'a>(&'a self) -> &'a Node;
-    fn right<'a>(&'a self) -> &'a Node;
+    fn left(&self) -> &Node;
+    fn right(&self) -> &Node;
 }
 
 binary!(As, Assignment, Between, DoesNotMatch, GreaterThan, GreaterThanOrEqual,
@@ -307,7 +307,7 @@ impl Function {
         }
     }
 
-    pub fn name<'a>(&'a self) -> &'a str {
+    pub fn name(&self) -> &str {
         match self.kind {
             Sum => "SUM",
             Exists => "EXISTS",
