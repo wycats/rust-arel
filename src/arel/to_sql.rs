@@ -148,6 +148,7 @@ impl Visitor for ToSqlVisitor {
         let name = match source.kind {
             nodes::InnerJoin => "INNER JOIN ",
             nodes::OuterJoin => "LEFT OUTER JOIN ",
+            nodes::RightOuterJoin => "RIGHT OUTER JOIN ",
             nodes::FullOuterJoin => "FULL OUTER JOIN "
         };
 
@@ -562,6 +563,21 @@ mod tests {
 
             expect_sql(select.statement(),
                 r#"SELECT FROM "users" LEFT OUTER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
+        }
+
+        #[test]
+        fn right_outer_join() {
+            use arel::Predications;
+            let left = Table::new("users");
+            let right = left.alias();
+            let predicate = left.at("id").eql(right.at("id"));
+
+            let select = left.select()
+                             .right_outer_join(right)
+                             .on(predicate);
+
+            expect_sql(select.statement(),
+                r#"SELECT FROM "users" RIGHT OUTER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
         }
     }
 }

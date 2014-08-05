@@ -158,7 +158,7 @@ impl TableAlias {
         TableAlias { name: alias_name.to_string(), relation: relation }
     }
 
-    pub fn get_table_name<'a>(&'a self) -> &'a str {
+    pub fn get_table_name(&self) -> &str {
         self.relation.name.as_slice()
     }
 }
@@ -256,6 +256,7 @@ node!(BindParam {
 pub enum JoinKind {
     InnerJoin,
     OuterJoin,
+    RightOuterJoin,
     FullOuterJoin
 }
 

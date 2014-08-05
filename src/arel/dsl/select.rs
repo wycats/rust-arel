@@ -74,6 +74,11 @@ impl SelectBuilder {
         self
     }
 
+    pub fn right_outer_join<T: Relation>(mut self, relation: T) -> SelectBuilder {
+        self.context().add_join(Join::build(nodes::RightOuterJoin, relation));
+        self
+    }
+
     pub fn on<T: ToNode>(mut self, on: T) -> SelectBuilder {
         self.context().on(on);
         self
