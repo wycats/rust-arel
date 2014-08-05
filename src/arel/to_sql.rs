@@ -147,7 +147,7 @@ impl Visitor for ToSqlVisitor {
     fn Join(&self, source: &nodes::Join, collector: &mut CollectSql) {
         let name = match source.kind {
             nodes::InnerJoin => "INNER JOIN ",
-            nodes::OuterJoin => "OUTER JOIN ",
+            nodes::OuterJoin => "LEFT OUTER JOIN ",
             nodes::FullOuterJoin => "FULL OUTER JOIN "
         };
 
@@ -531,6 +531,37 @@ mod tests {
 
             expect_sql(select.statement(),
                 r#"SELECT FROM "users" INNER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
+        }
+
+        #[test]
+        fn join_on_projected() {
+            use arel::Predications;
+            let left = Table::new("users");
+            let right = left.alias();
+            let predicate = left.at("id").eql(right.at("id"));
+
+            let select = left.select()
+                             .join(right)
+                             .project([star()])
+                             .on(predicate);
+
+            expect_sql(select.statement(),
+                r#"SELECT * FROM "users" INNER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
+        }
+
+        #[test]
+        fn outer_join() {
+            use arel::Predications;
+            let left = Table::new("users");
+            let right = left.alias();
+            let predicate = left.at("id").eql(right.at("id"));
+
+            let select = left.select()
+                             .outer_join(right)
+                             .on(predicate);
+
+            expect_sql(select.statement(),
+                r#"SELECT FROM "users" LEFT OUTER JOIN "users" "users_2" ON "users"."id" = "users_2"."id""#);
         }
     }
 }

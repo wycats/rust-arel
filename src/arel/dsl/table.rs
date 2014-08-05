@@ -15,9 +15,8 @@ impl Table {
     }
 
     pub fn project<'a, P: ToProjections>(&self, projections: P) -> SelectBuilder {
-        let mut select = from(self);
-        select.project(projections.to_projections());
-        select
+        let select = from(self);
+        select.project(projections.to_projections())
     }
 
     pub fn select(&self) -> SelectBuilder {

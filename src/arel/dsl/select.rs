@@ -1,6 +1,6 @@
 use arel::dsl::Table;
 use arel::nodes;
-use arel::nodes::{TableName, ToNode, ToOrder, Projection, Literal, InnerJoin, Relation};
+use arel::nodes::{TableName, ToNode, ToOrder, ToProjections, Literal, InnerJoin, Relation};
 use arel::nodes::{Join};
 
 pub struct SelectBuilder {
@@ -23,11 +23,6 @@ impl SelectBuilder {
 
     pub fn context<'a>(&'a mut self) -> &'a mut nodes::SelectCore {
         self.ast.context()
-    }
-
-    pub fn project<'a>(&'a mut self, projections: Vec<Box<Projection>>) -> &'a mut SelectBuilder {
-        self.context().set_projections(projections);
-        self
     }
 
     pub fn from<'a, S: Str>(&'a mut self, table: S) -> &'a mut SelectBuilder {
@@ -64,8 +59,18 @@ impl SelectBuilder {
         self
     }
 
+    pub fn project<P: ToProjections>(mut self, projections: P) -> SelectBuilder {
+        self.context().set_projections(projections.to_projections());
+        self
+    }
+
     pub fn join<T: Relation>(mut self, relation: T) -> SelectBuilder {
         self.context().add_join(Join::build(nodes::InnerJoin, relation));
+        self
+    }
+
+    pub fn outer_join<T: Relation>(mut self, relation: T) -> SelectBuilder {
+        self.context().add_join(Join::build(nodes::OuterJoin, relation));
         self
     }
 
