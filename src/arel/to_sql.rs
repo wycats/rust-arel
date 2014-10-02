@@ -84,15 +84,15 @@ impl Visitor for ToSqlVisitor {
     }
 
     fn Ascending(&self, asc: &nodes::Ascending, collector: &mut CollectSql) {
-        self.postfix(asc.operand, " ASC", collector);
+        self.postfix(&*asc.operand, " ASC", collector);
     }
 
     fn Descending(&self, asc: &nodes::Descending, collector: &mut CollectSql) {
-        self.postfix(asc.operand, " DESC", collector);
+        self.postfix(&*asc.operand, " DESC", collector);
     }
 
     fn Offset(&self, offset: &nodes::Offset, collector: &mut CollectSql) {
-        self.prefix(offset.operand, "OFFSET ", collector);
+        self.prefix(&*offset.operand, "OFFSET ", collector);
     }
 
     fn Subselect(&self, subselect: &nodes::Subselect, collector: &mut CollectSql) {
@@ -245,7 +245,7 @@ mod tests {
         nodes::Literal::new("foo")
     }
 
-    fn to_sql<N: Node>(node: N) -> String {
+    fn to_sql(node: &Node) -> String {
         let mut collector = SqlCollector::new();
         node.visit(&ToSqlVisitor, &mut collector);
         collector.value().to_string()
@@ -515,7 +515,7 @@ mod tests {
         fn simple_where() {
             use arel::Predications;
             let table = dsl::Table::new("users");
-            let select = table.project([star()]).where(table.at("age").gt(12u));
+            let select = table.project([star()]).where_(table.at("age").gt(12u));
             expect_sql(select.statement(), r#"SELECT * FROM "users" WHERE "users"."age" > 12"#);
         }
 
@@ -523,7 +523,7 @@ mod tests {
         fn select_column_where() {
             use arel::Predications;
             let table = dsl::Table::new("users");
-            let select = table.project([table.at("id")]).where(table.at("email").eql("stuff"));
+            let select = table.project([table.at("id")]).where_(table.at("email").eql("stuff"));
             expect_sql(select.statement(), r#"SELECT "users"."id" FROM "users" WHERE "users"."email" = 'stuff'"#);
         }
 

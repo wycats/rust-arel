@@ -76,7 +76,7 @@ impl SelectBuilder {
         self
     }
 
-    pub fn where<T: ToNode>(mut self, node: T) -> SelectBuilder {
+    pub fn where_<T: ToNode>(mut self, node: T) -> SelectBuilder {
         self.context().add_where(node.to_node());
         self
     }
@@ -108,7 +108,7 @@ impl SelectBuilder {
 }
 
 impl ToOrder for &'static str {
-    fn to_order(self) -> Box<nodes::Node> {
+    fn to_order(self) -> Box<nodes::Node + 'static> {
         box nodes::UnqualifiedColumn::new(self) as Box<nodes::Node>
     }
 }

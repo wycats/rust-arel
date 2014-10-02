@@ -1,5 +1,5 @@
 pub use self::table::Table;
-pub use Select = self::select::SelectBuilder;
+pub use self::select::SelectBuilder as Select;
 
 pub mod table;
 pub mod select;

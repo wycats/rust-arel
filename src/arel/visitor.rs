@@ -9,8 +9,7 @@ macro_rules! visitor(
     ($($name:ident),+) => (
         item!(pub trait Visitor {
             $(
-                #[allow(non_snake_case_functions)]
-                #[allow(unused_variable)]
+                #[allow(non_snake_case, unused_variable)]
                 fn $name(&self, node: &nodes::$name, collector: &mut CollectSql) {
                     fail!("Not yet implemented {}", stringify!($name))
                 }

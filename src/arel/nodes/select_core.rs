@@ -74,7 +74,7 @@ impl JoinSource {
     }
 
     pub fn on<T: ToNode>(&mut self, on: T) {
-        match self.right.mut_last() {
+        match self.right.last_mut() {
             Some(join) => join.on = Some(Unary::build(on.to_node())),
             None => ()
         }

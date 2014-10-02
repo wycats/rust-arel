@@ -12,10 +12,7 @@ impl ToNode for Box<Node> {
 }
 
 impl ToBorrowedNode for Box<Node> {
-    fn to_borrowed_node(&self) -> &Node {
-        let node: &Node = *self;
-        node
-    }
+    fn to_borrowed_node(&self) -> &Node { &**self }
 }
 
 impl<'a> ToBorrowedNode for &'a Node {
@@ -32,33 +29,18 @@ pub trait ToBorrowedNode {
     fn to_borrowed_node(&self) -> &Node;
 }
 
-pub trait Node {
+pub trait Node: 'static {
     fn visit(&self, visitor: &Visitor, collector: &mut CollectSql);
 
-    fn borrow(&self) -> &Node {
-        self as &Node
-    }
+    fn borrow(&self) -> &Node { self as &Node }
 }
 
 impl Node for Box<Node> {
     fn visit(&self, visitor: &Visitor, collector: &mut CollectSql) {
-        self.visit(visitor, collector)
+        (**self).visit(visitor, collector)
     }
 
-    fn borrow(&self) -> &Node {
-        let node: &Node = self;
-        node
-    }
-}
-
-impl<'a> Node for &'a Node {
-    fn visit(&self, visitor: &Visitor, collector: &mut CollectSql) {
-        self.visit(visitor, collector)
-    }
-
-    fn borrow(&self) -> &Node {
-        *self
-    }
+    fn borrow(&self) -> &Node { &**self }
 }
 
 pub trait Orderable : Node + ToNode {}
@@ -87,7 +69,7 @@ pub trait ToProjections {
 
 impl<P: ToProjection> ToProjections for Vec<P> {
     fn to_projections(self) -> Vec<Box<Projection>> {
-        self.move_iter().map(|p| p.to_projection()).collect()
+        self.into_iter().map(|p| p.to_projection()).collect()
     }
 }
 
@@ -185,7 +167,7 @@ pub enum Direction {
     Desc
 }
 
-pub trait Ordering {
+pub trait Ordering: 'static {
     fn reverse(self) -> Box<Ordering>;
     fn direction(&self) -> Direction;
 

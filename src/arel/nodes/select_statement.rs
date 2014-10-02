@@ -27,6 +27,6 @@ impl SelectStatement {
     }
 
     pub fn cores(&self) -> Vec<&nodes::SelectCore> {
-        self.cores.iter().collect::<Vec<& nodes::SelectCore>>().append_one(&self.context)
+        self.cores.iter().chain(Some(&self.context).into_iter()).collect()
     }
 }
