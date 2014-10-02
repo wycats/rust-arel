@@ -92,14 +92,14 @@ macro_rules! node_impl(
         }
 
         impl ::arel::nodes::ToNode for Box<$name> {
-            fn to_node(self) -> Box<::arel::nodes::Node> {
-                self as Box<::arel::nodes::Node>
+            fn to_node(self) -> Box<::arel::nodes::Node + 'static> {
+                self as Box<::arel::nodes::Node + 'static>
             }
         }
 
         impl ::arel::nodes::ToNode for $name {
-            fn to_node(self) -> Box<::arel::nodes::Node> {
-                box self as Box<::arel::nodes::Node>
+            fn to_node(self) -> Box<::arel::nodes::Node + 'static> {
+                box self as Box<::arel::nodes::Node + 'static>
             }
         }
 
@@ -136,10 +136,7 @@ macro_rules! unary(
                 $name { operand: operand.to_node() }
             }
 
-            fn operand(&self) -> &Node {
-                let operand: &Node = self.operand;
-                operand
-            }
+            fn operand(&self) -> &Node { &*self.operand }
         }
     )
 )
@@ -163,15 +160,8 @@ macro_rules! binary(
                 }
             }
 
-            fn left(&self) -> &::arel::nodes::Node {
-                let left: &::arel::nodes::Node = self.left;
-                left
-            }
-
-            fn right(&self) -> &::arel::nodes::Node {
-                let right: &::arel::nodes::Node = self.right;
-                right
-            }
+            fn left(&self) -> &::arel::nodes::Node { &*self.left }
+            fn right(&self) -> &::arel::nodes::Node { &*self.right }
         }
     )
 )
